@@ -1,0 +1,370 @@
+[
+  {
+    "key": "netflix",
+    "service": "Netflix",
+    "patterns": [
+      "NETFLIX",
+      "\\bNFLX\\b"
+    ],
+    "category": "Streaming",
+    "cancel_url": "https://www.netflix.com/cancelplan",
+    "typical": [
+      599,
+      799,
+      999
+    ],
+    "how": "Аккаунт → Платёжная информация → Отменить подписку. Доступ сохраняется до конца оплаченного периода."
+  },
+  {
+    "key": "yandex_plus",
+    "service": "Яндекс Плюс",
+    "patterns": [
+      "YANDEX.{0,12}PLUS",
+      "\\bYA[ .]?PLUS\\b"
+    ],
+    "category": "Ecosystem",
+    "cancel_url": "https://plus.yandex.ru/my",
+    "typical": [
+      399,
+      499
+    ],
+    "ecosystem": [
+      "kinopoisk",
+      "yandex_music"
+    ],
+    "how": "plus.yandex.ru → Управление подпиской → Отключить продление."
+  },
+  {
+    "key": "kinopoisk",
+    "service": "Кинопоиск",
+    "patterns": [
+      "KINOPOISK"
+    ],
+    "category": "Streaming",
+    "cancel_url": "https://plus.yandex.ru/my",
+    "typical": [
+      299,
+      399
+    ],
+    "how": "Кинопоиск входит в Яндекс Плюс — отключается в личном кабинете Плюса."
+  },
+  {
+    "key": "sberprime",
+    "service": "СберПрайм",
+    "patterns": [
+      "SBERPRIME",
+      "SBER ?PRIME",
+      "SBER ?PODPISKA"
+    ],
+    "category": "Ecosystem",
+    "cancel_url": "https://sberprime.sber.ru",
+    "typical": [
+      199,
+      399
+    ],
+    "how": "СберБанк Онлайн → Профиль → Подписки → СберПрайм → Отключить автопродление."
+  },
+  {
+    "key": "youtube_premium",
+    "service": "YouTube Premium",
+    "patterns": [
+      "YOUTUBE ?PREMIUM",
+      "GOOGLE.?YOUTUBE"
+    ],
+    "category": "Streaming",
+    "cancel_url": "https://www.youtube.com/paid_memberships",
+    "typical": [
+      199,
+      299
+    ],
+    "how": "YouTube → Платные подписки → Управление → Отменить."
+  },
+  {
+    "key": "google_one",
+    "service": "Google One",
+    "patterns": [
+      "GOOGLE ?ONE"
+    ],
+    "category": "Cloud",
+    "cancel_url": "https://one.google.com/settings",
+    "typical": [
+      139,
+      219
+    ],
+    "how": "one.google.com → Настройки → Отменить план хранилища."
+  },
+  {
+    "key": "vk_music",
+    "service": "VK Музыка",
+    "patterns": [
+      "VK ?MUSIC",
+      "VK ?COMBO",
+      "VKONTAKTE"
+    ],
+    "category": "Music",
+    "cancel_url": "https://vk.com/settings?act=payments",
+    "typical": [
+      169,
+      199
+    ],
+    "how": "VK → Настройки → Платежи и подписки → Отключить."
+  },
+  {
+    "key": "spotify",
+    "service": "Spotify",
+    "patterns": [
+      "SPOTIFY"
+    ],
+    "category": "Music",
+    "cancel_url": "https://www.spotify.com/account/subscription/",
+    "typical": [
+      169,
+      299
+    ],
+    "how": "Аккаунт → Управление подпиской → Перейти на Free."
+  },
+  {
+    "key": "icloud",
+    "service": "iCloud+",
+    "patterns": [
+      "APPLE.?COM.?BILL",
+      "ICLOUD",
+      "APPLE ?SERVICES"
+    ],
+    "category": "Cloud",
+    "cancel_url": "https://support.apple.com/ru-ru/HT202039",
+    "typical": [
+      59,
+      149,
+      299
+    ],
+    "how": "iPhone → Настройки → Apple ID → Подписки → Отменить."
+  },
+  {
+    "key": "openai",
+    "service": "ChatGPT Plus",
+    "patterns": [
+      "OPENAI",
+      "CHATGPT"
+    ],
+    "category": "Software",
+    "cancel_url": "https://chatgpt.com/#settings/Subscription",
+    "typical": [
+      1900,
+      2200
+    ],
+    "how": "ChatGPT → Settings → Subscription → Manage → Cancel plan."
+  },
+  {
+    "key": "adobe",
+    "service": "Adobe Creative Cloud",
+    "patterns": [
+      "ADOBE"
+    ],
+    "category": "Software",
+    "cancel_url": "https://account.adobe.com/plans",
+    "typical": [
+      1690,
+      7490
+    ],
+    "how": "account.adobe.com → Планы → Управление планом → Отменить."
+  },
+  {
+    "key": "ozon_premium",
+    "service": "Ozon Premium",
+    "patterns": [
+      "OZON ?PREMIUM"
+    ],
+    "category": "Ecosystem",
+    "cancel_url": "https://www.ozon.ru/my/premium",
+    "typical": [
+      199,
+      399
+    ],
+    "how": "Ozon → Мой профиль → Premium → Отключить продление."
+  },
+  {
+    "key": "samokat_pro",
+    "service": "Самокат Про",
+    "patterns": [
+      "SAMOKAT ?PRO",
+      "SAMOKAT.?PODPISKA"
+    ],
+    "category": "Delivery",
+    "cancel_url": "https://samokat.ru",
+    "typical": [
+      199
+    ],
+    "how": "Приложение Самокат → Профиль → Подписка → Отменить."
+  },
+  {
+    "key": "worldclass",
+    "service": "World Class",
+    "patterns": [
+      "WORLD ?CLASS"
+    ],
+    "category": "Fitness",
+    "cancel_url": "https://worldclass.ru",
+    "typical": [
+      3500,
+      5900
+    ],
+    "how": "Заявление в клубе или через личный кабинет — по правилам договора, обычно за 30 дней."
+  },
+  {
+    "key": "skyeng",
+    "service": "Skyeng",
+    "patterns": [
+      "SKYENG",
+      "SKY ?ENG"
+    ],
+    "category": "Education",
+    "cancel_url": "https://skyeng.ru",
+    "typical": [
+      3990
+    ],
+    "how": "Личный кабинет → Оплата → Отключить автосписание."
+  },
+  {
+    "key": "mts_premium",
+    "service": "МТС Premium",
+    "patterns": [
+      "MTS ?PREMIUM"
+    ],
+    "category": "Ecosystem",
+    "cancel_url": "https://premium.mts.ru",
+    "typical": [
+      199,
+      299
+    ],
+    "how": "Личный кабинет МТС → Подписки → Отключить."
+  },
+  {
+    "key": "ivi",
+    "service": "Иви",
+    "patterns": [
+      "\\bIVI\\b"
+    ],
+    "category": "Streaming",
+    "cancel_url": "https://www.ivi.ru/profile/subscriptions",
+    "typical": [
+      399,
+      599
+    ],
+    "how": "ivi.ru → Профиль → Подписки → Отключить продление."
+  },
+  {
+    "key": "okko",
+    "service": "Okko",
+    "patterns": [
+      "\\bOKKO\\b"
+    ],
+    "category": "Streaming",
+    "cancel_url": "https://okko.tv/profile/subscriptions",
+    "typical": [
+      399,
+      699
+    ],
+    "how": "okko.tv → Профиль → Мои подписки → Отменить."
+  },
+  {
+    "key": "litres",
+    "service": "Литрес",
+    "patterns": [
+      "LITRES"
+    ],
+    "category": "Education",
+    "cancel_url": "https://www.litres.ru/pages/subscription/",
+    "typical": [
+      399
+    ],
+    "how": "Литрес → Мой профиль → Подписка → Отключить автоплатёж."
+  },
+  {
+    "key": "duolingo",
+    "service": "Duolingo",
+    "patterns": [
+      "DUOLINGO"
+    ],
+    "category": "Education",
+    "cancel_url": "https://www.duolingo.com/settings/super",
+    "typical": [
+      599
+    ],
+    "how": "Duolingo → Настройки → Super → Отменить подписку."
+  },
+  {
+    "key": "notion",
+    "service": "Notion",
+    "patterns": [
+      "NOTION"
+    ],
+    "category": "Software",
+    "cancel_url": "https://www.notion.so/my-settings",
+    "typical": [
+      800,
+      1000
+    ],
+    "how": "Notion → Settings → Plans → Downgrade to Free."
+  },
+  {
+    "key": "yandex_music",
+    "service": "Яндекс Музыка",
+    "patterns": [
+      "YANDEX ?MUSIC",
+      "YA ?MUSIC"
+    ],
+    "category": "Music",
+    "cancel_url": "https://plus.yandex.ru/my",
+    "typical": [
+      199,
+      299
+    ],
+    "how": "Входит в Яндекс Плюс — отключается в личном кабинете Плюса."
+  },
+  {
+    "key": "rostelecom",
+    "service": "Ростелеком",
+    "patterns": [
+      "ROSTELECOM",
+      "RT\\.RU"
+    ],
+    "category": "Telecom",
+    "cancel_url": "https://lk.rt.ru",
+    "typical": [
+      650,
+      900
+    ],
+    "how": "Личный кабинет Ростелекома → Услуги → смена тарифа или расторжение договора."
+  },
+  {
+    "key": "mail_cloud",
+    "service": "Облако Mail.ru",
+    "patterns": [
+      "CLOUD ?MAIL",
+      "MAIL.?RU ?CLOUD"
+    ],
+    "category": "Cloud",
+    "cancel_url": "https://cloud.mail.ru/subscriptions",
+    "typical": [
+      149,
+      299
+    ],
+    "how": "cloud.mail.ru → Настройки → Подписка → Отключить продление."
+  },
+  {
+    "key": "wb_club",
+    "service": "WB Клуб",
+    "patterns": [
+      "WB ?CLUB",
+      "WILDBERRIES ?CLUB"
+    ],
+    "category": "Marketplace",
+    "cancel_url": "https://www.wildberries.ru/lk/subscriptions",
+    "typical": [
+      199,
+      299
+    ],
+    "how": "Wildberries → Личный кабинет → Подписки → Отключить."
+  }
+]
