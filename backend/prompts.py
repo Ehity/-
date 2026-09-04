@@ -102,7 +102,48 @@ CLUSTER_TEMPLATE = """Ниже — группа описаний из банко
 Ответ строго JSON:
 {{"groups": [{{"normalized_key": "...", "service": "...", "members": [1,2], "confidence": 0.0}}]}}"""
 
-RESPONSE_SCHEMA = json.loads((BASE / "schemas" / "response.json").read_text(encoding="utf-8"))
+# Схема ответа. Файл может лежать в schemas/, рядом или отсутствовать вовсе —
+# тогда берётся встроенная копия. Так prompts.py работает в одиночку,
+# без остальных файлов модуля.
+_SCHEMA_FALLBACK = {
+    "type": "object", "additionalProperties": False, "required": ["results"],
+    "properties": {"results": {"type": "array", "items": {
+        "type": "object", "additionalProperties": False,
+        "required": ["id", "service", "normalized_key", "category",
+                     "vendor_type", "confidence", "evidence", "source"],
+        "properties": {
+            "id": {"type": "string"},
+            "service": {"type": "string"},
+            "normalized_key": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+            "category": {"type": "string", "enum": [
+                "Streaming", "Music", "Cloud", "Gaming", "Education", "Fitness",
+                "Delivery", "Telecom", "Software", "Marketplace", "Finance",
+                "Ecosystem", "Other"]},
+            "vendor_type": {"type": "string", "enum": [
+                "subscription", "one_time", "transfer", "cash", "unknown"]},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "evidence": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+            "source": {"type": "string", "enum": ["registry", "embedding", "llm"]},
+        }}}},
+}
+
+
+def _load_schema() -> dict:
+    for path in (BASE / "schemas" / "response.json", BASE / "response.json"):
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    return _SCHEMA_FALLBACK
+
+
+RESPONSE_SCHEMA = _load_schema()
+
+# Список брендов для промпта. Обычно берётся из merchants.json; если справочника
+# рядом нет — используется этот минимальный набор.
+BRANDS_FALLBACK = (
+    "Netflix, Яндекс Плюс, Кинопоиск, СберПрайм, YouTube Premium, Google One, "
+    "VK Музыка, Spotify, iCloud+, ChatGPT Plus, Adobe Creative Cloud, Ozon Premium, "
+    "Самокат Про, World Class, Skyeng, МТС Premium, Иви, Okko, Литрес, Duolingo, "
+    "Notion, Яндекс Музыка, Ростелеком, Облако Mail.ru, WB Клуб")
 
 # Параметры вызова — вынесены сюда, чтобы не разъезжались между модулями
 LLM_PARAMS = {"temperature": 0, "top_p": 1, "seed": 42, "max_tokens": 2000}
@@ -110,9 +151,12 @@ BATCH_SIZE = 40
 
 
 def known_brands() -> str:
-    """Список брендов из справочника — подставляется в промпт."""
-    reg = json.loads((BASE / "merchants.json").read_text(encoding="utf-8"))
-    return ", ".join(m["service"] for m in reg)
+    """Список брендов из справочника — подставляется в промпт.
+    Если merchants.json рядом нет, берётся встроенный список."""
+    path = BASE / "merchants.json"
+    if not path.exists():
+        return BRANDS_FALLBACK
+    return ", ".join(m["service"] for m in json.loads(path.read_text(encoding="utf-8")))
 
 
 def build_messages(descriptions: list[str]) -> list[dict]:
