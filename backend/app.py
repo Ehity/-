@@ -1,49 +1,31 @@
-"""Entry point for Scaner MVP analysis."""
+import streamlit as st
+import pandas as pd
 
-import json
-import sys
+st.set_page_config(page_title="Subscription Scanner", page_icon="💳", layout="centered")
 
-from financial_metrics import (
-    calculate_subscription_costs,
-    calculate_total_annual_cost,
-    calculate_total_monthly_cost,
-)
-from parser import parse_statement
-from subscription_logic import find_subscriptions
+st.title("💳 Subscription Scanner")
+st.caption("Автоматический поиск и отмена скрытых подписок по банковской выписке")
 
+# Зона загрузки / генерации
+uploaded_file = st.file_uploader("Загрузите выписку (CSV)", type=["csv"])
+generate_btn = st.button("✨ Сгенерировать тестовую выписку")
 
-def analyze_statement(file_path: str) -> dict:
-    """Parse a statement, detect subscriptions and produce the frontend contract."""
-    transactions = parse_statement(file_path)
-    detected = find_subscriptions(transactions)
+# Демо-данные для заглушки
+demo_data = pd.DataFrame([
+    {"Сервис": "Яндекс Плюс", "Сумма": "299 ₽", "Период": "Ежемесячно", "Категория": "Развлечения", "Ссылка": "https://plus.yandex.ru"},
+    {"Сервис": "Telegram Premium", "Сумма": "299 ₽", "Период": "Ежемесячно", "Категория": "Мессенджеры", "Ссылка": "https://t.me/premium"},
+    {"Сервис": "Фитнес-клуб", "Сумма": "2 890 ₽", "Период": "Ежемесячно", "Категория": "Спорт", "Ссылка": "https://example.com"},
+])
 
-    subscriptions = []
-    for item in detected:
-        costs = calculate_subscription_costs(item)
-        subscriptions.append(
-            {
-                "service": item["service"],
-                "monthly_cost": costs["monthly_cost"],
-                "annual_cost": costs["annual_cost"],
-                "payments_count": item["payments_count"],
-                "average_interval_days": item["average_interval_days"],
-                "score": item["score"],
-                "status": item["status"],
-            }
-        )
+# Отображение результатов (когда есть действие)
+if uploaded_file or generate_btn:
+    st.success("Выписка успешно обработана!")
+    
+    col1, col2 = st.columns(2)
+    col1.metric(label="Найдено подписок", value="3 шт")
+    col2.metric(label="Итоговые траты", value="3 488 ₽/мес")
 
-    return {
-        "subscriptions": subscriptions,
-        "summary": {
-            "subscriptions_count": len(subscriptions),
-            "total_monthly_cost": calculate_total_monthly_cost(subscriptions),
-            "total_annual_cost": calculate_total_annual_cost(subscriptions),
-        },
-    }
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Использование: python app.py path_to_statement.csv")
-        raise SystemExit(1)
-    print(json.dumps(analyze_statement(sys.argv[1]), ensure_ascii=False, indent=2))
+    st.subheader("Найденные регулярные списания")
+    st.dataframe(demo_data, use_container_width=True)
+else:
+    st.info("👋 Загрузите файл выписки или нажмите кнопку генерации, чтобы начать сканирование.")
