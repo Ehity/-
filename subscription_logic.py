@@ -282,6 +282,83 @@ def score_all_groups(groups: dict[str, list[dict]]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Pandas-обвязка — для Игната (Streamlit) и работы с CSV
+# ---------------------------------------------------------------------------
+
+def process_dataframe(df) -> "pd.DataFrame":
+    """
+    Принимает pandas DataFrame с транзакциями и возвращает
+    его же, но с двумя новыми колонками: "score" и "verdict".
+
+    Ожидаемые колонки в df:
+      • "date"     — дата транзакции
+      • "amount"   — сумма
+      • "merchant" — название продавца (опционально)
+
+    Пример использования в app.py Игната:
+        import pandas as pd
+        from subscription_logic import process_dataframe
+
+        df = pd.read_csv("transactions.csv")
+        result_df = process_dataframe(df)
+        st.dataframe(result_df[["date", "merchant", "amount", "score", "verdict"]])
+    """
+    import pandas as pd
+
+    # Если колонки называются по-другому — пробуем стандартные варианты
+    col_map = {}
+    for col in df.columns:
+        low = col.lower().strip()
+        if low in ("date", "дата", "transaction_date"):
+            col_map["date"] = col
+        elif low in ("amount", "сумма", "sum", "price", "value"):
+            col_map["amount"] = col
+        elif low in ("merchant", "продавец", "name", "description", "desc", "title"):
+            col_map["merchant"] = col
+
+    if "date" not in col_map or "amount" not in col_map:
+        raise ValueError(
+            "В таблице не найдены обязательные колонки 'date' и 'amount'. "
+            f"Найденные колонки: {list(df.columns)}"
+        )
+
+    merchant_col = col_map.get("merchant")
+
+    # Группируем транзакции по нормализованному имени продавца
+    def get_merchant(row):
+        if merchant_col:
+            return _normalize_merchant(str(row[col_map["merchant"]]))
+        return "unknown"
+
+    df = df.copy()
+    df["_merchant_key"] = df.apply(get_merchant, axis=1)
+
+    # Считаем скор для каждой группы продавцов
+    scores_map = {}   # merchant_key → score
+    verdict_map = {}  # merchant_key → verdict
+
+    for key, group in df.groupby("_merchant_key"):
+        txs = [
+            {
+                "date":     row[col_map["date"]],
+                "amount":   row[col_map["amount"]],
+                "merchant": str(row[col_map["merchant"]]) if merchant_col else "",
+            }
+            for _, row in group.iterrows()
+        ]
+        result = calculate_subscription_score(txs)
+        scores_map[key] = result["score"]
+        verdict_map[key] = result["verdict"]
+
+    # Проставляем колонки каждой строке
+    df["score"]   = df["_merchant_key"].map(scores_map)
+    df["verdict"] = df["_merchant_key"].map(verdict_map)
+    df.drop(columns=["_merchant_key"], inplace=True)
+
+    return df
+
+
+# ---------------------------------------------------------------------------
 # Быстрый тест при прямом запуске
 # ---------------------------------------------------------------------------
 
@@ -329,3 +406,22 @@ if __name__ == "__main__":
     }
     for row in score_all_groups(groups):
         print(f"  {row['merchant_group']:12s} → {row['score']:5.1f}  ({row['verdict']})")
+
+    print()
+    print("=" * 60)
+    print("ТЕСТ 4 — process_dataframe (как будет приходить от Игната)")
+    print("=" * 60)
+    import pandas as pd
+    raw = pd.DataFrame([
+        {"date": "2024-01-15", "amount": 799.0,  "merchant": "NETFLIX.COM"},
+        {"date": "2024-02-14", "amount": 799.0,  "merchant": "NETFLIX*123"},
+        {"date": "2024-03-15", "amount": 799.0,  "merchant": "NETFLIX.COM Amsterdam"},
+        {"date": "2024-01-10", "amount": 299.0,  "merchant": "Spotify AB"},
+        {"date": "2024-02-10", "amount": 299.0,  "merchant": "SPOTIFY"},
+        {"date": "2024-03-10", "amount": 299.0,  "merchant": "Spotify"},
+        {"date": "2024-01-03", "amount": 350.0,  "merchant": "MAGNIT"},
+        {"date": "2024-01-20", "amount": 1200.0, "merchant": "MAGNIT"},
+        {"date": "2024-03-05", "amount": 80.0,   "merchant": "MAGNIT"},
+    ])
+    result_df = process_dataframe(raw)
+    print(result_df[["date", "merchant", "amount", "score", "verdict"]].to_string(index=False))
