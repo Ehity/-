@@ -19,22 +19,33 @@ DEEP_LINKS = {
     "ИВИ": "https://www.ivi.ru/profile/subscription",
 }
 
-# Известные сервисы для красивого нейминга (после нормализации)
+# Известные сервисы (ключ: (Название, Категория))
 _KNOWN_SERVICES = {
     'YANDEXPLUS': ('Яндекс Плюс', 'Развлечения'),
+    'YMPLUS': ('Яндекс Плюс', 'Развлечения'), # Алиас для YM*PLUS
     'YANDEXMUSIC': ('Яндекс Музыка', 'Развлечения'),
     'SBERPRIME': ('СберПрайм', 'Сервисы'),
     'NETFLIX': ('Netflix', 'Кино'),
     'TELEGRAMPREMIUM': ('Telegram Premium', 'Связь'),
 }
 
-# Черный список мерчантов для отсечения ложных срабатываний
-_BLACKLIST_MERCHANTS = ['PYATEROCHKA', 'MAGNIT', 'PEREKRESTOK', 'DIKSY', 'LENTA', 'KVITOUCHKA', 'OZON']
+# Черный список мерчантов (Латиница + Кириллица)
+_BLACKLIST_MERCHANTS = [
+    'PYATEROCHKA', 'MAGNIT', 'PEREKRESTOK', 'DIKSY', 'LENTA', 'OZON', 'KVITOUCHKA',
+    'ПЯТЕРОЧКА', 'МАГНИТ', 'ПЕРЕКРЕСТОК', 'ДИКСИ', 'ЛЕНТА', 'ОЗОН', 'КВИТОЧКА', 'ПЯТЕРОЧКА'
+]
 
 def normalize_description(desc: str) -> str:
     """Удаляет все символы, кроме букв, для точного матчинга."""
     if not isinstance(desc, str): return ""
     return re.sub(r'[^A-ZА-Я]', '', desc.upper())
+
+def get_group_key(norm_desc: str) -> str:
+    """Объединяет разные варианты написания в один ключ для группировки."""
+    for key in _KNOWN_SERVICES.keys():
+        if key in norm_desc:
+            return key
+    return norm_desc
 
 def scan_subscriptions(df_raw):
     """Умный алгоритм поиска подписок с учетом дат, медианы и черного списка."""
@@ -49,18 +60,25 @@ def scan_subscriptions(df_raw):
     if not amount_col or not desc_col:
         return pd.DataFrame()
 
+    # ФИКС 1: Берем модуль суммы, чтобы отрицательные списания стали положительными
+    df[amount_col] = pd.to_numeric(df[amount_col], errors='coerce').abs()
+    
     # Преобразуем даты
     if date_col:
         df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
         df = df.sort_values(by=date_col)
 
     results = []
-    # Группируем по сырому описанию
-    for desc, group in df.groupby(desc_col):
-        norm_desc = normalize_description(desc)
+    
+    # ФИКС 2: Создаем колонку с ключом группировки
+    df['norm_desc'] = df[desc_col].apply(normalize_description)
+    df['group_key'] = df['norm_desc'].apply(get_group_key)
+    
+    # Группируем по вычисленному ключу
+    for group_key, group in df.groupby('group_key'):
         
-        # 1. Отсекаем супермаркеты
-        if any(merchant in norm_desc for merchant in _BLACKLIST_MERCHANTS):
+        # 1. Отсекаем супермаркеты (теперь работает и с кириллицей)
+        if any(merchant in group_key for merchant in _BLACKLIST_MERCHANTS):
             continue
             
         # 2. Списаний должно быть больше 1
@@ -75,7 +93,7 @@ def scan_subscriptions(df_raw):
         median_amount = statistics.median(real_amounts)
         
         # 4. Проверка периодичности
-        period_type = None
+        period_type = "Нерегулярно"
         if date_col and len(group) >= 2:
             dates = group[date_col].dropna().tolist()
             if len(dates) >= 2:
@@ -85,28 +103,22 @@ def scan_subscriptions(df_raw):
                 if 6 <= avg_diff <= 9: period_type = "Еженедельно"
                 elif 27 <= avg_diff <= 33: period_type = "Ежемесячно"
                 elif 360 <= avg_diff <= 370: period_type = "Ежегодно"
-                else: period_type = "Нерегулярно"
-        else:
-            period_type = "Ежемесячно (предположительно)"
-            
-        # 5. Определяем красивое имя и категорию
-        pretty_name = str(desc)
-        category = "Прочее"
-        score = 65 # Базовый скор
         
-        for marker, (name, cat) in _KNOWN_SERVICES.items():
-            if marker in norm_desc:
-                pretty_name = name
-                category = cat
-                score = 95 # Если сервис известен - скор высокий
-                break
-                
+        # 5. Определяем красивое имя и категорию из справочника
+        pretty_name = group[desc_col].iloc[0] # Берем первое попавшееся сырое название по умолчанию
+        category = "Прочее"
+        score = 65
+        
+        if group_key in _KNOWN_SERVICES:
+            pretty_name, category = _KNOWN_SERVICES[group_key]
+            score = 95
+            
         # Если суммы одинаковые, добавляем баллов
         if len(set(real_amounts)) == 1:
             score = min(100, score + 10)
+
         results.append({
             'service': pretty_name,
-            'raw_desc': desc,
             'amount': int(median_amount),
             'count': len(group),
             'period': period_type,
@@ -117,18 +129,15 @@ def scan_subscriptions(df_raw):
     return pd.DataFrame(results)
 
 def generate_synthetic_data():
-    """Синтетика, похожая на реальную выписку Сбера."""
+    """Тестовая выписка с негативными суммами и кириллицей"""
     return pd.DataFrame([
-        {"date": "2026-02-05", "amount": 1, "description": "YANDEX 4 PLUS RU MOSCOW", "category": "Развлечения"},
-        {"date": "2026-03-05", "amount": 399, "description": "YANDEX 4 PLUS RU MOSCOW", "category": "Развлечения"},
-        {"date": "2026-04-05", "amount": 399, "description": "YANDEX 4 PLUS RU MOSCOW", "category": "Развлечения"},
-        {"date": "2026-02-12", "amount": 799, "description": "NETFLIX.COM", "category": "Кино"},
-        {"date": "2026-03-12", "amount": 799, "description": "NETFLIX.COM", "category": "Кино"},
-        {"date": "2026-04-12", "amount": 799, "description": "NETFLIX.COM", "category": "Кино"},
-        {"date": "2026-03-01", "amount": 299, "description": "SBERPRIME PODPISKA", "category": "Сервисы"},
-        {"date": "2026-04-01", "amount": 299, "description": "SBERPRIME PODPISKA", "category": "Сервисы"},
-        {"date": "2026-03-10", "amount": 550, "description": "PYATEROCHKA", "category": "Супермаркеты"},
-        {"date": "2026-04-07", "amount": 620, "description": "PYATEROCHKA", "category": "Супермаркеты"},
+        {"date": "2026-02-05", "amount": -1, "description": "Yandex.Plus", "category": "Развлечения"},
+        {"date": "2026-03-05", "amount": -299, "description": "Yandex Plus", "category": "Развлечения"},
+        {"date": "2026-04-05", "amount": -299, "description": "YM*PLUS", "category": "Развлечения"},
+        {"date": "2026-03-01", "amount": -299, "description": "SBERPRIME PODPISKA", "category": "Сервисы"},
+        {"date": "2026-04-01", "amount": -299, "description": "SBERPRIME PODPISKA", "category": "Сервисы"},
+        {"date": "2026-03-10", "amount": -550, "description": "Пятерочка", "category": "Супермаркеты"},
+        {"date": "2026-04-07", "amount": -620, "description": "Пятерочка", "category": "Супермаркеты"},
     ])
 
 # UI: Панель загрузки
@@ -150,7 +159,7 @@ if uploaded_file is not None:
         st.error(f"Ошибка при чтении файла: {e}")
 elif generate_btn:
     df_to_analyze = generate_synthetic_data()
-    st.info("Сгенерирована тестовая выписка (включая Пятёрочку для проверки ложных срабатываний).")
+    st.info("Сгенерирована жесткая тестовая выписка (с минусами, кириллицей и дроблением Яндекса).")
 
 # Отображение результатов
 if df_to_analyze is not None:
@@ -159,18 +168,14 @@ if df_to_analyze is not None:
     if not results_df.empty:
         st.divider()
         
-        # Если нашли подписки, считаем суммы. Предполагаем, что регулярные - это не "Нерегулярно"
         active_subs = results_df[results_df['period'] != 'Нерегулярно'].copy()
         
         total_monthly = 0
         for _, row in active_subs.iterrows():
-            if 'Ежегодно' in row['period']:
-                total_monthly += row['amount'] / 12
-            elif 'Еженедельно' in row['period']:
-                total_monthly += row['amount'] * 4.33
-            else:
-                total_monthly += row['amount']
-                
+            if 'Ежегодно' in row['period']: total_monthly += row['amount'] / 12
+            elif 'Еженедельно' in row['period']: total_monthly += row['amount'] * 4.33
+            else: total_monthly += row['amount']
+            
         total_yearly = int(total_monthly * 12)
         
         m1, m2, m3 = st.columns(3)
@@ -179,7 +184,6 @@ if df_to_analyze is not None:
         m3.metric("Потенциальная экономия в год", f"{total_yearly:,} ₽".replace(",", " "))
         
         st.subheader("📋 Найденные активные подписки")
-        
         st.dataframe(
             active_subs[["service", "amount", "period", "category", "score"]],
             column_config={
@@ -196,11 +200,9 @@ if df_to_analyze is not None:
         st.subheader("⚡ Быстрый переход к отмене")
         for idx, row in active_subs.iterrows():
             srv = str(row["service"])
-            # Ищем совпадение с ключами в DEEP_LINKS
             link = next((v for k, v in DEEP_LINKS.items() if k.lower() in srv.lower()), f"https://yandex.ru/search/?text=как+отменить+подписку+{srv}")
-            
             c1, c2 = st.columns([3, 1])
-            c1.write(f"• {srv} — {int(row['amount'])} ₽ ({row['period']})")
+            c1.write(f"• **{srv}** — {int(row['amount'])} ₽ ({row['period']})")
             c2.link_button("🔗 Перейти к отмене", link)
     else:
         st.warning("В загруженном файле не обнаружено регулярных повторяющихся списаний.")
