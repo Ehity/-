@@ -30,7 +30,7 @@ _ALIASES = {
     'YMUSIC': 'YANDEXMUSIC'
 }
 
-# Черный список мерчантов
+# Черный список мерчантов (Латиница + Кириллица)
 _BLACKLIST_MERCHANTS = [
     'PYATEROCHKA', 'MAGNIT', 'PEREKRESTOK', 'DIKSY', 'LENTA', 'OZON', 'KVITOUCHKA',
     'ПЯТЕРОЧКА', 'МАГНИТ', 'ПЕРЕКРЕСТОК', 'ДИКСИ', 'ЛЕНТА', 'ОЗОН', 'КВИТОЧКА'
@@ -53,7 +53,6 @@ def get_group_key(norm_desc: str) -> str:
             return key
     return norm_desc
 
-# ФИКС 2: Переименовали функцию, чтобы test_backend.py мог её импортировать
 def analyze_statement(df_raw):
     """Умный алгоритм поиска подписок."""
     df = df_raw.copy()
@@ -100,7 +99,7 @@ def analyze_statement(df_raw):
                 diffs = [(dates[i] - dates[i-1]).days for i in range(1, len(dates))]
                 avg_diff = sum(diffs) / len(diffs)
                 
-                # ФИКС 3: Расширили диапазон месячной подписки до 25-40 дней (защита от сдвигов)
+                # Расширили диапазон месячной подписки до 25-40 дней (защита от сдвигов)
                 if 6 <= avg_diff <= 9: period_type = "Еженедельно"
                 elif 25 <= avg_diff <= 40: period_type = "Ежемесячно"
                 elif 360 <= avg_diff <= 370: period_type = "Ежегодно"
@@ -127,6 +126,30 @@ def analyze_statement(df_raw):
         
     return pd.DataFrame(results)
 
+def analyze_statement_with_csv(file_path: str) -> dict:
+    """Обёртка для тестов: принимает путь к CSV, возвращает словарь со summary."""
+    df = pd.read_csv(file_path)
+    results_df = analyze_statement(df)
+    
+    if results_df.empty:
+        return {"summary": {"total_monthly": 0, "total_yearly": 0, "count": 0}, "subscriptions": []}
+        
+    active_subs = results_df[results_df['period'] != 'Нерегулярно'].copy()
+    total_monthly = 0
+    for _, row in active_subs.iterrows():
+        if 'Ежегодно' in row['period']: total_monthly += row['amount'] / 12
+        elif 'Еженедельно' in row['period']: total_monthly += row['amount'] * 4.33
+        else: total_monthly += row['amount']
+        
+    return {
+        "summary": {
+            "total_monthly": int(total_monthly),
+            "total_yearly": int(total_monthly * 12),
+            "count": len(active_subs)
+        },
+        "subscriptions": active_subs.to_dict(orient='records')
+    }
+
 def generate_synthetic_data():
     return pd.DataFrame([
         {"date": "2026-02-05", "amount": -1, "description": "Yandex.Plus", "category": "Развлечения"},
@@ -140,7 +163,6 @@ def generate_synthetic_data():
         {"date": "2026-04-07", "amount": -620, "description": "Пятерочка", "category": "Супермаркеты"},
     ])
 
-# ФИКС 4: Обернули Streamlit UI в main(), чтобы test_backend.py мог импортировать модуль без запуска интерфейса
 def main():
     st.set_page_config(page_title="Сбер.Сканер Подписок", page_icon="💳", layout="wide")
     st.title("💳 Сбер.Сканер Подписок")
